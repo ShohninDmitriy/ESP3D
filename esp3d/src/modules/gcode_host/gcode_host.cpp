@@ -163,7 +163,7 @@ bool GcodeHost::wait_for_ack(uint32_t timeout, bool checksum, const char * ack)
 
         Hal::wait (0);  //minimum delay is 10 actually
     }
-    _error = ERROR_ACK_NUMBER;
+    _error = ERROR_TIME_OUT;
     return false;
 }
 
@@ -194,7 +194,7 @@ bool GcodeHost::sendCommand(const char* command, bool checksum, bool wait4ack, c
         //to give a chance to not overload buffer
         bool done = false;
         while (((millis() - start) < DEFAULT_TIMOUT) && !done) {
-            if (serial_service.availableForWrite() > s.length()) {
+            if ((size_t)serial_service.availableForWrite() > s.length()) {
                 if (strlen(command) == serial_service.write((const uint8_t*)s.c_str(), s.length())) {
                     if (serial_service.write('\n')==1) {
                         if(!wait4ack) {
@@ -209,7 +209,7 @@ bool GcodeHost::sendCommand(const char* command, bool checksum, bool wait4ack, c
                             //what is the error ?
                             log_esp3d("Error: %d", _error);
                             //no need to retry for this one
-                            if (_error == ERROR_MEMORY_PROBLEM) {
+                            if ((_error == ERROR_MEMORY_PROBLEM) || (_error == ERROR_TIME_OUT)) {
                                 return false;
                             }
                             //need to resend command
@@ -224,6 +224,7 @@ bool GcodeHost::sendCommand(const char* command, bool checksum, bool wait4ack, c
                     }
                 }
             }
+            Hal::wait(0);
         }
     }
     if (_error == ERROR_NO_ERROR) {

@@ -150,6 +150,15 @@ bool Commands::ESP420(const char* cmd_params, level_authenticate_type auth_type,
         output->print (": ");
     }
     output->print(ESP_FileSystem::formatBytes (ESP.getFreeHeap()).c_str());
+
+#ifdef ARDUINO_ARCH_ESP32
+#ifdef BOARD_HAS_PSRAM
+    output->print(" - PSRAM:");
+    output->print(ESP_FileSystem::formatBytes (ESP.getFreePsram()).c_str());
+
+#endif //BOARD_HAS_PSRAM
+#endif //ARDUINO_ARCH_ESP32
+
     if (!plain) {
         output->print ("\"}");
     } else {
@@ -479,22 +488,6 @@ bool Commands::ESP420(const char* cmd_params, level_authenticate_type auth_type,
             output->print (": ");
         }
         output->printf ("%s(%d)",esp3d_camera.GetModelString(),esp3d_camera.GetModel());
-        if (!plain) {
-            output->print ("\"}");
-        } else {
-            output->printLN("");
-        }
-        //camera port
-        if (!plain) {
-            output->print (",{\"id\":\"");
-        }
-        output->print ("camera ports");
-        if (!plain) {
-            output->print ("\",\"value\":\"");
-        } else {
-            output->print (": ");
-        }
-        output->printf ("%d - %d",esp3d_camera.port(), esp3d_camera.port()+1);
         if (!plain) {
             output->print ("\"}");
         } else {
@@ -1134,6 +1127,23 @@ bool Commands::ESP420(const char* cmd_params, level_authenticate_type auth_type,
     } else {
         output->printLN("");
     }
+#if defined (AUTHENTICATION_FEATURE)
+    if (!plain) {
+        output->print (",{\"id\":\"");
+    }
+    output->print ("authentication");
+    if (!plain) {
+        output->print ("\",\"value\":\"");
+    } else {
+        output->print (": ");
+    }
+    output->print ("ON");
+    if (!plain) {
+        output->print ("\"}");
+    } else {
+        output->printLN("");
+    }
+#endif //AUTHENTICATION_FEATURE
 #if defined (NOTIFICATION_FEATURE)
     if (!plain) {
         output->print (",{\"id\":\"");

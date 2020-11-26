@@ -86,6 +86,8 @@
 #define DEFAULT_INTERNET_TIME       0
 #endif //TIMESTAMP_FEATURE
 
+#define DEFAULT_SETUP   0
+
 #define DEFAULT_ESP_BYTE        0
 #define DEFAULT_ESP_STRING_SIZE 0
 #if defined (WIFI_FEATURE) || defined (ETH_FEATURE)
@@ -129,12 +131,12 @@
 #define DEFAULT_FTP_ACTIVE_PORT 20L
 #define DEFAULT_FTP_PASSIVE_PORT 55600L
 #define DEFAULT_WEBSOCKET_PORT  8282L
-#define DEFAULT_CAMERA_PORT     9600L
 #define DEFAULT_TELNET_PORT     23L
 #define DEFAULT_SENSOR_INTERVAL 30000L
 #define DEFAULT_BOOT_DELAY      10000L
 #define DEFAULT_CALIBRATION_VALUE 0
 #define DEFAULT_CALIBRATION_DONE 0
+#define DEFAULT_SESSION_TIMEOUT 3
 
 #ifdef WIFI_FEATURE
 //default string values
@@ -235,6 +237,14 @@ uint8_t Settings_ESP3D::get_default_byte_value(int pos)
     case ESP_RADIO_MODE:
         res = DEFAULT_ESP_RADIO_MODE;
         break;
+    case ESP_SETUP:
+        res = DEFAULT_SETUP;
+        break;
+#ifdef AUTHENTICATION_FEATURE
+    case ESP_SESSION_TIMEOUT:
+        res = DEFAULT_SESSION_TIMEOUT;
+        break;
+#endif //AUTHENTICATION_FEATURE
 #ifdef TIMESTAMP_FEATURE
     case ESP_INTERNET_TIME:
         res = DEFAULT_INTERNET_TIME;
@@ -402,11 +412,6 @@ uint32_t Settings_ESP3D::get_default_int32_value(int pos)
         res = DEFAULT_WEBSOCKET_PORT;
         break;
 #endif //WS_DATA_FEATURE
-#ifdef CAMERA_DEVICE
-    case ESP_CAMERA_PORT:
-        res = DEFAULT_CAMERA_PORT;
-        break;
-#endif //CAMERA_DEVICE
 #if defined(SENSOR_DEVICE)
     case ESP_SENSOR_INTERVAL:
         res = DEFAULT_SENSOR_INTERVAL;
@@ -426,11 +431,6 @@ uint32_t Settings_ESP3D::get_max_int32_value(int pos)
     case ESP_BOOT_DELAY:
         res = MAX_BOOT_DELAY;
         break;
-#ifdef CAMERA_DEVICE
-    case ESP_CAMERA_PORT:
-        res = MAX_HTTP_PORT;
-        break;
-#endif //CAMERA_DEVICE
 #ifdef FTP_FEATURE
     case ESP_FTP_CTRL_PORT:
     case ESP_FTP_DATA_ACTIVE_PORT:
@@ -472,11 +472,6 @@ uint32_t Settings_ESP3D::get_min_int32_value(int pos)
     case ESP_BOOT_DELAY:
         res = MIN_BOOT_DELAY;
         break;
-#ifdef CAMERA_DEVICE
-    case ESP_CAMERA_PORT:
-        res =MIN_HTTP_PORT;
-        break;
-#endif //CAMERA_DEVICE
 #ifdef FTP_FEATURE
     case ESP_FTP_CTRL_PORT:
     case ESP_FTP_DATA_ACTIVE_PORT:
@@ -1021,7 +1016,6 @@ bool Settings_ESP3D::reset()
 {
     bool res = true;
     log_esp3d("Reset Settings");
-
 #if ESP_SAVE_SETTINGS == SETTINGS_IN_PREFERENCES
     log_esp3d("clear preferences");
     Preferences prefs;
@@ -1035,6 +1029,9 @@ bool Settings_ESP3D::reset()
 //for EEPROM need to overwrite all settings
 #if ESP_SAVE_SETTINGS == SETTINGS_IN_EEPROM
     log_esp3d("clear EEPROM");
+
+    //Setup done (internal only)
+    Settings_ESP3D::write_byte(ESP_SETUP,Settings_ESP3D::get_default_byte_value(ESP_SETUP));
 
 #if defined(DISPLAY_DEVICE) && defined(DISPLAY_TOUCH_DRIVER)
     //Calibration done (internal only)
@@ -1127,11 +1124,6 @@ bool Settings_ESP3D::reset()
     Settings_ESP3D::write_uint32 (ESP_TELNET_PORT, Settings_ESP3D::get_default_int32_value(ESP_TELNET_PORT));
 #endif //TELNET
 
-#ifdef CAMERA_DEVICE
-    //Camera Port
-    Settings_ESP3D::write_uint32 (ESP_CAMERA_PORT, Settings_ESP3D::get_default_int32_value(ESP_CAMERA_PORT));
-#endif //CAMERA_DEVICE
-
 #ifdef WS_DATA_FEATURE
     //Websocket On
     Settings_ESP3D::write_byte(ESP_WEBSOCKET_ON,Settings_ESP3D::get_default_byte_value(ESP_WEBSOCKET_ON));
@@ -1143,6 +1135,8 @@ bool Settings_ESP3D::reset()
     Settings_ESP3D::write_string(ESP_ADMIN_PWD,Settings_ESP3D::get_default_string_value(ESP_ADMIN_PWD).c_str());
     //User password
     Settings_ESP3D::write_string(ESP_USER_PWD,Settings_ESP3D::get_default_string_value(ESP_USER_PWD).c_str());
+    //Session timeout
+    Settings_ESP3D::write_byte(ESP_SESSION_TIMEOUT,Settings_ESP3D::get_default_byte_value(ESP_SESSION_TIMEOUT));
 #endif //AUTHENTICATION_FEATURE
     //Target FW
     Settings_ESP3D::write_byte(ESP_TARGET_FW,Settings_ESP3D::get_default_byte_value(ESP_TARGET_FW));
@@ -1232,7 +1226,11 @@ String Settings_ESP3D::IPtoString(uint32_t ip_int)
 const char * Settings_ESP3D::TargetBoard()
 {
 #ifdef ARDUINO_ARCH_ESP32
+#ifdef BOARD_HAS_PSRAM
+    return "ESP32 (PSRAM)";
+#else
     return "ESP32";
+#endif //BOARD_HAS_PSRAM
 #endif //ARDUINO_ARCH_ESP32
 #ifdef ARDUINO_ARCH_ESP8266
     return "ESP82XX";

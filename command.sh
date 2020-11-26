@@ -2,7 +2,7 @@
 
 function build_sketch()
 {
-	local sketch=$1
+    local sketch=$1
     local target=$2
     local ide=$3
     local bt=$4
@@ -31,18 +31,24 @@ function build_sketch()
     if [[ "$target" == "esp32" ]];
     then
         echo "setup for esp32"
-        arduino --board esp32:esp32:esp32:PartitionScheme=min_spiffs,FlashFreq=80,PSRAM=disabled,CPUFreq=240,FlashMode=qio,FlashSize=4M,DebugLevel=none --pref compiler.warning_level=all --save-prefs
+        arduino --board esp32:esp32:esp32:PartitionScheme=min_spiffs,FlashFreq=80,PSRAM=disabled,CPUFreq=240,FlashMode=qio,FlashSize=4M,DebugLevel=none --save-prefs
     else
         echo "setup for esp8266"
         sed -i "s/#define DISPLAY_DEVICE/\/\/#define DISPLAY_DEVICE/g" $TRAVIS_BUILD_DIR/esp3d/configuration.h
         sed -i "s/#define ETH_FEATURE/\/\/#define ETH_FEATURE/g" $TRAVIS_BUILD_DIR/esp3d/configuration.h
-        arduino --board esp8266com:esp8266:generic:eesz=4M3M,xtal=160,FlashMode=dio,FlashFreq=40,sdk=nonosdk221,ip=lm2f,dbg=Disabled,vt=flash,exception=disabled,ssl=basic --save-prefs
+        arduino --board esp8266com:esp8266:generic:eesz=4M3M,xtal=160,FlashMode=dio,FlashFreq=40,sdk=nonosdk221,ip=lm2f,dbg=Disabled,vt=flash,exception=disabled,ssl=basic,waveform=pwm --save-prefs
     fi
     if [[ "$fs" == "SPIFFS" ]];
     then
         echo "Set Filesystem to SPIFFS"
         sed -i "s/#define FILESYSTEM_FEATURE ESP_FAT_FILESYSTEM/#define FILESYSTEM_FEATURE ESP_SPIFFS_FILESYSTEM/g" $TRAVIS_BUILD_DIR/esp3d/configuration.h
         sed -i "s/#define FILESYSTEM_FEATURE ESP_LITTLEFS_FILESYSTEM/#define FILESYSTEM_FEATURE ESP_SPIFFS_FILESYSTEM/g" $TRAVIS_BUILD_DIR/esp3d/configuration.h
+    fi
+    if [[ "$fs" == "LITTLEFS" ]];
+    then
+        echo "Set Filesystem to LittleFS"
+        sed -i "s/#define FILESYSTEM_FEATURE ESP_FAT_FILESYSTEM/#define FILESYSTEM_FEATURE ESP_LITTLEFS_FILESYSTEM/g" $TRAVIS_BUILD_DIR/esp3d/configuration.h
+        sed -i "s/#define FILESYSTEM_FEATURE ESP_SPIFFS_FILESYSTEM/#define FILESYSTEM_FEATURE ESP_LITTLEFS_FILESYSTEM/g" $TRAVIS_BUILD_DIR/esp3d/configuration.h
     fi
     if [[ "$fs" == "FAT" ]];
     then
@@ -52,18 +58,18 @@ function build_sketch()
     fi
     echo "Display configuration"
     cat $TRAVIS_BUILD_DIR/esp3d/configuration.h
-	# build sketch with arduino ide
-	echo -e "\n Build $sketch \n"
-	arduino --verbose --verify $sketch
+    # build sketch with arduino ide
+    echo -e "\n Build $sketch \n"
+    arduino --verbose --verify $sketch
 
-	# get build result from arduino
-	local re=$?
+    # get build result from arduino
+    local re=$?
 
-	# check result
-	if [ $re -ne 0 ]; then
-		echo "Failed to build $sketch"
-		return $re
-	fi
+    # check result
+    if [ $re -ne 0 ]; then
+        echo "Failed to build $sketch"
+        return $re
+    fi
     else
         echo "setup for platformIO"
         sed -i "s/#define BLUETOOTH_FEATURE/\/\/#define BLUETOOTH_FEATURE/g" $TRAVIS_BUILD_DIR/esp3d/configuration.h

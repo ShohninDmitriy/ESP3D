@@ -39,7 +39,14 @@
 #define ESP3D_SERIAL Serial2
 #endif //USE_SERIAL_2
 
+#define ESP3DSERIAL_RUNNING_PRIORITY 1
+#define ESP3DSERIAL_RUNNING_CORE 1
+#define SERIAL_YIELD 10
+
 SerialService serial_service;
+#if defined(ARDUINO_ARCH_ESP32) && defined(SERIAL_INDEPENDANT_TASK)
+TaskHandle_t _hserialtask= nullptr;
+#endif //ARDUINO_ARCH_ESP32 
 
 const long SupportedBaudList[] = {9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000, 500000, 921600};
 
@@ -57,6 +64,18 @@ SerialService::~SerialService()
     end();
 }
 
+//dedicated serial task
+#if defined(ARDUINO_ARCH_ESP32) && defined(SERIAL_INDEPENDANT_TASK)
+void ESP3DSerialTaskfn( void * parameter )
+{
+    for(;;) {
+        serial_service.process();
+        Hal::wait(SERIAL_YIELD);  // Yield to other tasks
+    }
+    vTaskDelete( NULL );
+}
+#endif //ARDUINO_ARCH_ESP32 
+
 //Setup Serial
 bool SerialService::begin()
 {
@@ -69,17 +88,35 @@ bool SerialService::begin()
         if ( !is_valid_baudrate(br)) {
             br = Settings_ESP3D::get_default_int32_value(ESP_BAUD_RATE);
         }
+        ESP3D_SERIAL.setRxBufferSize (SERIAL_RX_BUFFER_SIZE);
 #ifdef ARDUINO_ARCH_ESP8266
-        ESP3D_SERIAL.begin(br, SERIAL_8N1, SERIAL_FULL, (ESP_TX_PIN == -1)?1:ESP_TX_PIN);
+        ESP3D_SERIAL.begin(br, ESP_SERIAL_PARAM, SERIAL_FULL, (ESP_TX_PIN == -1)?1:ESP_TX_PIN);
 #if ESP_RX_PIN != -1
         ESP3D_SERIAL.pins((ESP_TX_PIN == -1)?1:ESP_TX_PIN, ESP_RX_PIN)
 #endif //ESP_RX_PIN != -1
 #endif //ARDUINO_ARCH_ESP8266
-#ifdef ARDUINO_ARCH_ESP32
+#if defined(ARDUINO_ARCH_ESP32)
         ESP3D_SERIAL.begin (br, ESP_SERIAL_PARAM, ESP_RX_PIN, ESP_TX_PIN);
+#if defined(SERIAL_INDEPENDANT_TASK)
+        //create serial task once
+        if (_hserialtask == nullptr) {
+            xTaskCreatePinnedToCore(
+                ESP3DSerialTaskfn, /* Task function. */
+                "ESP3D Serial Task", /* name of task. */
+                8192, /* Stack size of task */
+                NULL, /* parameter of the task */
+                ESP3DSERIAL_RUNNING_PRIORITY, /* priority of the task */
+                &_hserialtask, /* Task handle to keep track of created task */
+                ESP3DSERIAL_RUNNING_CORE    /* Core to run the task */
+            );
+        }
+        if (_hserialtask == nullptr) {
+            log_esp3d("Serial Task creation failed");
+            return false;
+        }
+#endif //SERIAL_INDEPENDANT_TASK
 #endif //ARDUINO_ARCH_ESP32
     }
-    ESP3D_SERIAL.setRxBufferSize (SERIAL_RX_BUFFER_SIZE);
     _started = true;
     return true;
 }
@@ -117,7 +154,7 @@ bool SerialService::is_valid_baudrate(long br)
 }
 
 //Function which could be called in other loop
-void SerialService::handle()
+void SerialService::process()
 {
     //Do we have some data waiting
     size_t len = available();
@@ -141,6 +178,16 @@ void SerialService::handle()
     }
 }
 
+//Function which could be called in other loop
+void SerialService::handle()
+{
+//for ESP32 there is dedicated task for it
+#if !(defined(ARDUINO_ARCH_ESP32) && defined(SERIAL_INDEPENDANT_TASK))
+    process();
+#endif //ARDUINO_ARCH_ESP8266
+
+}
+
 void SerialService::flushbuffer()
 {
     ESP3DOutput output(ESP_SERIAL_CLIENT);
@@ -157,13 +204,13 @@ void SerialService::push2buffer(uint8_t * sbuf, size_t len)
     for (size_t i = 0; i < len; i++) {
         _lastflush = millis();
         //command is defined
-        if (char(sbuf[i]) == '\n') {
+        if ((char(sbuf[i]) == '\n')|| (char(sbuf[i]) == '\r')) {
             if (_buffer_size < ESP3D_SERIAL_BUFFER_SIZE) {
                 _buffer[_buffer_size] = sbuf[i];
                 _buffer_size++;
             }
             flushbuffer();
-        } else if (isPrintable (char(sbuf[i]) ) || char(sbuf[i]) == '\r') {
+        } else if (isPrintable (char(sbuf[i]) ))  {
             if (_buffer_size < ESP3D_SERIAL_BUFFER_SIZE) {
                 _buffer[_buffer_size] = sbuf[i];
                 _buffer_size++;
@@ -240,7 +287,7 @@ size_t SerialService::write(const uint8_t *buffer, size_t size)
     }
 }
 
-uint SerialService::availableForWrite()
+int SerialService::availableForWrite()
 {
     return ESP3D_SERIAL.availableForWrite();
 }

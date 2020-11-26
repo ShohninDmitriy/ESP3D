@@ -119,9 +119,8 @@
 
 //PIN_RESET_FEATURE : allow to reset settings by setting low a pin
 //#define PIN_RESET_FEATURE
-#if defined (PIN_RESET_FEATURE)
-#define ESP3D_RESET_PIN 2
-#endif //PIN_RESET_FEATURE
+//#define ESP3D_RESET_PIN 0
+
 
 //SD_DEVICE: to access SD Card files directly instead of access by serial using printer Board FW
 //ESP_SD_NATIVE               1 //esp32 / esp8266
@@ -132,15 +131,16 @@
 //SDIO mode
 #define SD_ONE_BIT_MODE true
 
-//SD Device Connection type (default is direct)
+//SD Device Connection type (default is ESP_NO_SD if not defined)
+//ESP_NO_SD
 //ESP_DIRECT_SD
 //ESP_SHARED_SD
 #define SD_DEVICE_CONNECTION  ESP_DIRECT_SD
 
 //pin if reader has insert detection feature
 //let -1 or comment if none
-#define ESP_SD_DETECT_PIN       -1
-//value expected for ESP_SD_DETECT_PIN
+//#define ESP_SD_DETECT_PIN       -1
+//value expected for ESP_SD_DETECT_PIN (0 or 1)
 #define ESP_SD_DETECT_VALUE      1
 
 //FILESYSTEM_FEATURE: to host some files on flash
@@ -163,10 +163,10 @@
 #define DIRECT_PIN_FEATURE
 
 //TIMESTAMP_FEATURE: set time system
-#define TIMESTAMP_FEATURE
+//#define TIMESTAMP_FEATURE
 
 //FILESYSTEM_TIMESTAMP_FEATURE: display last write time from Flash files
-#define FILESYSTEM_TIMESTAMP_FEATURE
+//#define FILESYSTEM_TIMESTAMP_FEATURE
 
 //FILESYSTEM_TIMESTAMP_FEATURE:display last write time from SD files
 //#define SD_TIMESTAMP_FEATURE
@@ -210,6 +210,7 @@
 //#define CAMERA_DEVICE_FLIP_HORIZONTALY//comment to disable
 #define CUSTOM_CAMERA_NAME "ESP32-CAM"
 
+
 //Allow remote access by enabling cross origin access
 //check https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
 //this should be enabled only in specific cases
@@ -241,9 +242,10 @@
 //DEBUG_OUTPUT_SERIAL2 3
 //DEBUG_OUTPUT_TELNET  4
 //DEBUG_OUTPUT_WEBSOCKET  5
-//#define ESP_DEBUG_FEATURE DEBUG_OUTPUT_SERIAL0
+//#define ESP_DEBUG_FEATURE DEBUG_OUTPUT_SERIAL2
 
 #ifdef ESP_DEBUG_FEATURE
+#define DEBUG_BAUDRATE 115200
 #define DEBUG_ESP3D_OUTPUT_PORT  8000
 #endif //ESP_DEBUG_FEATURE
 
@@ -266,6 +268,9 @@
 
 //Serial rx buffer size is 256 but can be extended
 #define SERIAL_RX_BUFFER_SIZE 512
+
+//Serial need speed up on esp32
+#define SERIAL_INDEPENDANT_TASK
 
 /************************************
  *

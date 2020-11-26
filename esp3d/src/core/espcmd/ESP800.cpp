@@ -71,6 +71,10 @@ bool Commands::ESP800(const char* cmd_params, level_authenticate_type auth_type,
         }
     }
 #endif //TIMESTAMP_FEATURE
+    parameter = get_param (cmd_params, "setup=");
+    if(parameter.length() > 0) {
+        Settings_ESP3D::write_byte (ESP_SETUP, parameter =="0"?0:1);
+    }
     //FW version
     if (plain) {
         output->print("FW version:");
@@ -91,6 +95,18 @@ bool Commands::ESP800(const char* cmd_params, level_authenticate_type auth_type,
         output->print(",\"FWTarget\":\"");
     }
     output->print(Settings_ESP3D::GetFirmwareTargetShortName());
+    if(plain) {
+        output->printLN("");
+    } else {
+        output->print("\"");
+    }
+    //Setup done
+    if (plain) {
+        output->print("Setup:");
+    } else {
+        output->print(",\"Setup\":\"");
+    }
+    output->print(Settings_ESP3D::read_byte (ESP_SETUP) == 0?F("Enabled"):F("Disabled"));
     if(plain) {
         output->printLN("");
     } else {
@@ -215,11 +231,11 @@ bool Commands::ESP800(const char* cmd_params, level_authenticate_type auth_type,
         output->print(",\"WebUpdate\":\"");
     }
 #ifdef WEB_UPDATE_FEATURE
-    if (ESP_FileSystem::max_update_size()!=0){
-         output->print("Enabled");
-     } else {
-         output->print("Disabled");
-     }
+    if (ESP_FileSystem::max_update_size()!=0) {
+        output->print("Enabled");
+    } else {
+        output->print("Disabled");
+    }
 #else
     output->print("Disabled");
 #endif //WEB_UPDATE_FEATURE
@@ -263,18 +279,6 @@ bool Commands::ESP800(const char* cmd_params, level_authenticate_type auth_type,
         output->print("\"");
     }
 #ifdef CAMERA_DEVICE
-    //camera port
-    if (plain) {
-        output->print("Camera port:");
-    } else {
-        output->print(",\"Cam_port\":\"");
-    }
-    output->print(esp3d_camera.port());
-    if(plain) {
-        output->printLN("");
-    } else {
-        output->print("\"");
-    }
     //camera ID
     if (plain) {
         output->print("Camera ID:");

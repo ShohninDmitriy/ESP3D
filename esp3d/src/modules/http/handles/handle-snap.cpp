@@ -1,5 +1,5 @@
 /*
- handle-command.cpp - ESP3D http handle
+ handle-snap.cpp - ESP3D http handle
 
  Copyright (c) 2014 Luc Lebosse. All rights reserved.
 
@@ -18,7 +18,8 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "../../../include/esp3d_config.h"
-#if defined (HTTP_FEATURE)
+#if defined (HTTP_FEATURE) && defined (CAMERA_DEVICE)
+#include "../../camera/camera.h"
 #include "../http_server.h"
 #if defined (ARDUINO_ARCH_ESP32)
 #include <WebServer.h>
@@ -30,28 +31,13 @@
 #include "../../../core/commands.h"
 #include "../../../core/esp3doutput.h"
 
-//Handle web command query and send answer//////////////////////////////
-void HTTP_Server::handle_web_command ()
+void HTTP_Server::handle_snap()
 {
     level_authenticate_type auth_level = AuthenticationService::authenticated_level();
     if (auth_level == LEVEL_GUEST) {
         _webserver->send (401, "text/plain", "Wrong authentication!");
         return;
     }
-    //log_esp3d("Authentication = %d", auth_level);
-    String cmd = "";
-    if (_webserver->hasArg ("cmd")) {
-        cmd = _webserver->arg ("cmd");
-        ESP3DOutput  output(_webserver);
-        if(!cmd.endsWith("\n")) {
-            cmd+="\n";    //need to validate command
-        }
-        esp3d_commands.process((uint8_t*)cmd.c_str(), cmd.length(), &output, auth_level);
-    } else if (_webserver->hasArg ("ping")) {
-        _webserver->send (200);
-    } else {
-        _webserver->send (400, "text/plain", "Invalid command");
-    }
-    return;
+    esp3d_camera.handle_snap(_webserver);
 }
-#endif //HTTP_FEATURE
+#endif //HTTP_FEATURE && CAMERA_DEVICE

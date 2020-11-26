@@ -191,6 +191,17 @@ bool Commands::ESP400(const char* cmd_params, level_authenticate_type auth_type,
     output->print ("\",\"H\":\"user pwd\",\"M\":\"");
     output->print (Settings_ESP3D::get_min_string_size(ESP_USER_PWD));
     output->print ("\"}");
+
+    //session timeout
+    output->print (",{\"F\":\"security/security\",\"P\":\"");
+    output->print (ESP_SESSION_TIMEOUT);
+    output->print ("\",\"T\":\"B\",\"V\":\"");
+    output->print (Settings_ESP3D::read_byte(ESP_SESSION_TIMEOUT));
+    output->print ("\",\"S\":\"");
+    output->print (Settings_ESP3D::get_max_byte(ESP_SESSION_TIMEOUT));
+    output->print ("\",\"H\":\"session timeout\",\"M\":\"");
+    output->print (Settings_ESP3D::get_min_byte(ESP_SESSION_TIMEOUT));
+    output->print ("\"}");
 #endif //AUTHENTICATION_FEATURE
 
 #ifdef HTTP_FEATURE
@@ -408,18 +419,6 @@ bool Commands::ESP400(const char* cmd_params, level_authenticate_type auth_type,
     output->print (Settings_ESP3D::get_min_string_size(ESP_NOTIFICATION_SETTINGS));
     output->print ("\"}");
 #endif //NOTIFICATION_FEATURE
-#ifdef CAMERA_DEVICE
-    //Camera Port
-    output->print (",{\"F\":\"device/camera\",\"P\":\"");
-    output->print (ESP_CAMERA_PORT);
-    output->print ("\",\"T\":\"I\",\"V\":\"");
-    output->print (Settings_ESP3D::read_uint32(ESP_CAMERA_PORT));
-    output->print ("\",\"H\":\"port\",\"S\":\"");
-    output->print (Settings_ESP3D::get_max_int32_value(ESP_CAMERA_PORT));
-    output->print ("\",\"M\":\"");
-    output->print (Settings_ESP3D::get_min_int32_value(ESP_CAMERA_PORT));
-    output->print ("\"}");
-#endif //CAMERA_DEVICE
 #ifdef BUZZER_DEVICE
     //Buzzer state
     output->print (",{\"F\":\"device/device\",\"P\":\"");

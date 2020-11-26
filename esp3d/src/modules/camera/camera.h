@@ -22,15 +22,18 @@
 
 #ifndef _CAMERA_H
 #define _CAMERA_H
+#include <WebServer.h>
 
 class Camera
 {
 public:
     Camera();
     ~Camera();
-    bool initHardware(bool forceinit = false);
-    bool begin(bool forceinit = false);
+    bool begin();
     void end();
+    bool initHardware();
+    bool stopHardware();
+    void handle_snap(WebServer * webserver);
     void handle();
     int command(const char * param, const char * value);
     uint8_t GetModel();
@@ -39,28 +42,13 @@ public:
     {
         return _started;
     }
-    bool initialised()
+    bool isinitialised()
     {
         return _initialised;
-    }
-    bool stopHardware();
-    void connect(bool status)
-    {
-        _connected = status;
-    }
-    bool isconnected()
-    {
-        return _connected;
-    }
-    uint16_t port()
-    {
-        return _port;
     }
 private:
     bool _initialised;
     bool _started;
-    bool _connected;
-    uint16_t _port;
 };
 
 extern Camera esp3d_camera;

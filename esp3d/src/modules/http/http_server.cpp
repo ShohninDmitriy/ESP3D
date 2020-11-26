@@ -42,6 +42,7 @@ uint16_t HTTP_Server::_port = 0;
 WEBSERVER * HTTP_Server::_webserver = nullptr;
 uint8_t HTTP_Server::_upload_status = UPLOAD_STATUS_NONE;
 
+
 void HTTP_Server::init_handlers()
 {
     _webserver->on("/",HTTP_ANY, handle_root);
@@ -54,7 +55,7 @@ void HTTP_Server::init_handlers()
     //need to be there even no authentication to say to UI no authentication
     _webserver->on("/login", HTTP_ANY, handle_login);
 #ifdef FILESYSTEM_FEATURE
-    //FileSystem
+    //FileSystememptyConstChar
     _webserver->on ("/files", HTTP_ANY, handleFSFileList, FSFileupload);
 #endif //FILESYSTEM_FEATURE
 #ifdef SD_DEVICE
@@ -65,11 +66,14 @@ void HTTP_Server::init_handlers()
     //web update
     _webserver->on ("/updatefw", HTTP_ANY, handleUpdate, WebUpdateUpload);
 #endif //WEB_UPDATE_FEATURE
+#ifdef CAMERA_DEVICE
+    _webserver->on("/snap", HTTP_GET, handle_snap);
+#endif //CAMERA_DEVICE
 #ifdef SSDP_FEATURE
     if(WiFi.getMode() != WIFI_AP) {
         _webserver->on("/description.xml", HTTP_GET, handle_SSDP);
     }
-#endif
+#endif //SSDP_FEATURE
 #ifdef CAPTIVE_PORTAL_FEATURE
     if(WiFi.getMode() == WIFI_AP) {
         _webserver->on ("/generate_204", HTTP_ANY,  handle_root);
@@ -77,7 +81,7 @@ void HTTP_Server::init_handlers()
         //do not forget the / at the end
         _webserver->on ("/fwlink/", HTTP_ANY, handle_root);
     }
-#endif
+#endif //CAPTIVE_PORTAL_FEATURE
 }
 
 bool HTTP_Server::StreamFSFile(const char* filename, const char * contentType)
@@ -146,7 +150,7 @@ bool HTTP_Server::StreamSDFile(const char* filename, const char * contentType)
 }
 #endif //SD_DEVICE
 
-void HTTP_Server::pushError(int code, const char * st, bool web_error, uint16_t timeout)
+void HTTP_Server::pushError(int code, const char * st, uint16_t web_error, uint16_t timeout)
 {
     if (websocket_terminal_server.started() && st) {
         String s = "ERROR:" + String(code) + ":";
@@ -235,12 +239,13 @@ void HTTP_Server::handle()
     }
 }
 
+
 const char * HTTP_Server::get_Splited_Value(String data, char separator, int index)
 {
     int found = 0;
     int strIndex[] = {0, -1};
     int maxIndex = data.length()-1;
-
+    static String s;
     for(int i=0; i<=maxIndex && found<=index; i++) {
         if(data.charAt(i)==separator || i==maxIndex) {
             found++;
@@ -248,8 +253,9 @@ const char * HTTP_Server::get_Splited_Value(String data, char separator, int ind
             strIndex[1] = (i == maxIndex) ? i+1 : i;
         }
     }
-
-    return found>index ? data.substring(strIndex[0], strIndex[1]).c_str() : "";
+    if (found>index) s =  data.substring(strIndex[0], strIndex[1]).c_str();
+    else s = "";
+    return s.c_str();
 }
 
 //helper to extract content type from file extension

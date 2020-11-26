@@ -33,12 +33,13 @@ public:
     bool begin();
     bool end();
     void handle();
+    void process();
     bool reset();
     long baudRate();
     const long * get_baudratelist(uint8_t * count);
     void flush();
     void swap();
-    uint availableForWrite();
+    int availableForWrite();
     int available();
     bool is_valid_baudrate(long br);
     size_t write(uint8_t c);
