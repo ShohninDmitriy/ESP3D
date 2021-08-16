@@ -21,6 +21,8 @@
 //boundaries
 
 
+#define MAX_WEBDAV_PORT             65001
+#define MIN_WEBDAV_PORT             1
 #define MAX_HTTP_PORT               65001
 #define MIN_HTTP_PORT               1
 #define MAX_FTP_PORT                65001
@@ -32,17 +34,7 @@
 #define MAX_HOSTNAME_LENGTH         32
 #define MIN_HOSTNAME_LENGTH         1
 
-//IP mode
-#define DHCP_MODE       1
-#define STATIC_IP_MODE  0
 
-//Network Mode
-#define ESP_RADIO_OFF 0
-#define ESP_WIFI_STA 1
-#define ESP_WIFI_AP  2
-#define ESP_BT       3
-#define ESP_ETH_STA  4
-//#define ESP_ETH_SRV  5
 
 #ifdef ARDUINO_ARCH_ESP32
 #include <WiFi.h>
@@ -74,6 +66,7 @@ public:
         return _started;
     }
     static String localIP();
+    static IPAddress localIPAddress();
 private :
     static String _hostname;
     static void onWiFiEvent(WiFiEvent_t event);

@@ -38,6 +38,10 @@
 #define USE_SERIAL_1 2
 #define USE_SERIAL_2 3
 
+//Communication protocols
+#define RAW_SERIAL 0
+#define MKS_SERIAL 1
+
 //Display
 #define OLED_I2C_SSD1306        1
 #define OLED_I2C_SSDSH1106      2
@@ -51,9 +55,29 @@
 #define UI_MONOCHROME      2
 
 //SD connection
-#define ESP_NO_SD       0
-#define ESP_DIRECT_SD   1
-#define ESP_SHARED_SD   2
+#define ESP_NO_SD           0
+#define ESP_DIRECT_SD       1
+#define ESP_SHARED_SD       2
+
+//Upload type
+#define ESP_UPLOAD_DIRECT_SD       1
+#define ESP_UPLOAD_SHARED_SD       2
+#define ESP_UPLOAD_SERIAL_SD       3
+#define ESP_UPLOAD_FAST_SERIAL_SD  4
+#define ESP_UPLOAD_FAST_SERIAL_USB 5
+#define ESP_UPLOAD_DIRECT_USB      6
+
+//IP mode
+#define DHCP_MODE       1
+#define STATIC_IP_MODE  0
+
+//Network Mode
+#define ESP_RADIO_OFF 0
+#define ESP_WIFI_STA 1
+#define ESP_WIFI_AP  2
+#define ESP_BT       3
+#define ESP_ETH_STA  4
+//#define ESP_ETH_SRV  5
 
 //SD mount point
 #define ESP_SD_ROOT     1
@@ -75,6 +99,7 @@
 #define ESP_SD_NATIVE               1
 #define ESP_SDIO                    2
 #define ESP_SDFAT                   3
+#define ESP_SDFAT2                  4
 
 //SD state
 #define ESP_SDCARD_IDLE             0
@@ -82,6 +107,7 @@
 #define ESP_SDCARD_BUSY             2
 
 //Notifications
+#define ESP_NO_NOTIFICATION         0
 #define ESP_PUSHOVER_NOTIFICATION   1
 #define ESP_EMAIL_NOTIFICATION      2
 #define ESP_LINE_NOTIFICATION       3
@@ -125,6 +151,10 @@
 #define ESP_FILE_READ       0
 #define ESP_FILE_WRITE      1
 #define ESP_FILE_APPEND     2
+
+#define ESP_SEEK_SET  0
+#define ESP_SEEK_CUR  1
+#define ESP_SEEK_END  2
 
 #define FS_ROOT        0
 #define FS_FLASH       1

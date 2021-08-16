@@ -18,7 +18,6 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "../../include/esp3d_config.h"
-#if defined (WIFI_FEATURE)
 #include "../commands.h"
 #include "../esp3doutput.h"
 #include "../settings_esp3d.h"
@@ -41,10 +40,11 @@ const char * help[]= {"[ESP] - display this help",
                       "[ESP110](State) - display/set radio state which can be STA, AP, OFF",
 #endif // WIFI_FEATURE || BLUETOOTH_FEATURE || ETH_FEATURE
 #if defined( WIFI_FEATURE) || defined (ETH_FEATURE)
-                      "[ESP111]display current IP",
+                      "[ESP111](header)display current IP",
 #endif //WIFI_FEATURE || ETH_FEATURE
 #if defined(WIFI_FEATURE) || defined(ETH_FEATURE) || defined(BT_FEATURE)
                       "[ESP112](Hostname) - display/set Hostname",
+                      "[ESP114](State) -  display/set boot Network state which can be ON, OFF",
                       "[ESP115](State) -  display/set immediate Network state which can be ON, OFF",
 #endif //WIFI_FEATURE || ETH_FEATURE || BT_FEATURE
 #if defined(HTTP_FEATURE)
@@ -58,7 +58,7 @@ const char * help[]= {"[ESP] - display this help",
 #if defined(TIMESTAMP_FEATURE)
                       "[ESP140](SYNC) (srv1=xxxx) (srv2=xxxx) (srv3=xxxx) (zone=xxx) (dst=YES/NO) (time=YYYY-MM-DD#H24:MM:SS) - sync/display/set current time/time servers",
 #endif //TIMESTAMP_FEATURE
-                      "[ESP150](time) - display/set boot delay in ms",
+                      "[ESP150](delay=time) (verbose=ON/OFF)- display/set boot delay in ms / Verbose boot",
 #if defined(WS_DATA_FEATURE)
                       "[ESP160](State) - display/set WebSocket state which can be ON, OFF, CLOSE",
                       "[ESP161](Port) - display/set WebSocket port",
@@ -70,12 +70,19 @@ const char * help[]= {"[ESP] - display this help",
                       "[ESP180](State) - display/set FTP state which can be ON, OFF",
                       "[ESP181](ctrl=xxxx) (active=xxxx) (passive=xxxx) - display/set FTP ports",
 #endif //FTP_FEATURE
+#if defined(WEBDAV_FEATURE)
+                      "[ESP190](State) - display/set WebDav state which can be ON, OFF",
+                      "[ESP191](Port) - display/set WebDav port",
+#endif //WEBDAV_FEATURE
 #if defined (SD_DEVICE)
                       "[ESP200] - display SD Card Status",
 #endif //SD_DEVICE
 #ifdef DIRECT_PIN_FEATURE
                       "[ESP201](Pxxx) (Vxxx) (PULLUP=YES RAW=YES ANALOG=NO ANALOG_RANGE=255 CLEARCHANNELS=NO) - read / set  pin value",
 #endif //DIRECT_PIN_FEATURE
+#if defined (SD_DEVICE)
+                      "[ESP202] - display / set  SD Card  SD card Speed factor (1 2 4 6 8 16 32)",
+#endif //SD_DEVICE
 #ifdef SENSOR_DEVICE
                       "[ESP210](type=NONE/xxx) (interval=xxxx) - display and read/set SENSOR info",
 #endif //SENSOR_DEVICE
@@ -94,6 +101,9 @@ const char * help[]= {"[ESP] - display this help",
                       "[ESP290](delay in ms) - do a pause",
                       "[ESP400] - display ESP3D settings in JSON",
                       "[ESP401]P=(position) T=(type) V=(value) - Set specific setting",
+#ifdef SD_UPDATE_FEATURE
+                      "[ESP402](State) - display/set check update at boot from SD which can be ON, OFF",
+#endif //SD_UPDATE_FEATURE
 #if defined (WIFI_FEATURE)
                       "[ESP410](plain) - display available AP list (limited to 30) in plain/JSON",
 #endif //WIFI_FEATURE
@@ -106,6 +116,7 @@ const char * help[]= {"[ESP] - display this help",
 #if defined(NOTIFICATION_FEATURE)
                       "[ESP600](message) - send notification",
                       "[ESP610]type=(NONE/PUSHOVER/EMAIL/LINE) (T1=xxx) (T2=xxx) (TS=xxx) - display/set Notification settings",
+                      "[ESP620]URL=http://XXXXXX  - send GET notification",
 #endif //NOTIFICATION_FEATURE
 #if defined(FILESYSTEM_FEATURE) && defined(ESP_GCODE_HOST_FEATURE)
                       "[ESP700](filename) - read ESP Filesystem file",
@@ -114,7 +125,7 @@ const char * help[]= {"[ESP] - display this help",
                       "[ESP710]FORMAT - Format ESP Filesystem",
 #endif //FILESYSTEM_FEATURE
 #if defined (SD_DEVICE)
-                      "[ESP715]FORMAT - Format SD Filesystem",
+                      "[ESP715]FORMATSD - Format SD Filesystem",
 #endif //SD_DEVICE
 #if defined(FILESYSTEM_FEATURE)
                       "[ESP720](path) - List ESP Filesystem",
@@ -133,6 +144,7 @@ const char * help[]= {"[ESP] - display this help",
 #ifdef BUZZER_DEVICE
                       "[ESP910](ENABLE/DISABLE) - display/set buzzer state",
 #endif //BUZZER_DEVICE
+                      "[ESP920](client)=(ON/OFF) - display/set SERIAL / LCD / PRINTER_LCD/ WEBSOCKET / TELNET /BT / ALL client state",
                       ""
                      };
 const uint cmdlist[]= {0,
@@ -183,6 +195,10 @@ const uint cmdlist[]= {0,
                        180,
                        181,
 #endif //FTP_FEATURE
+#if defined(WEBDAV_FEATURE)
+                       190,
+                       111,
+#endif //WEBDAV_FEATURE
 #if defined (SD_DEVICE)
                        200,
 #endif //SD_DEVICE
@@ -285,5 +301,3 @@ bool Commands::ESP0(const char* cmd_params, level_authenticate_type auth_type, E
     }
     return response;
 }
-
-#endif //WIFI_FEATURE

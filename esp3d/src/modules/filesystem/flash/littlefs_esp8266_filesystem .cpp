@@ -18,7 +18,7 @@ littlefs_esp8266_filesystem.cpp - ESP3D littlefs filesystem configuration class
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "../../../include/esp3d_config.h"
-#if (FILESYSTEM_FEATURE == ESP_LITTLEFS_FILESYSTEM)
+#if (FILESYSTEM_FEATURE == ESP_LITTLEFS_FILESYSTEM) && defined(ARDUINO_ARCH_ESP8266)
 #include "../esp_filesystem.h"
 #include "../../../core/genLinkedList.h"
 #include <FS.h>
@@ -57,6 +57,11 @@ size_t ESP_FileSystem::usedBytes()
     return info.usedBytes;
 }
 
+uint ESP_FileSystem::maxPathLength()
+{
+    return 32;
+}
+
 bool ESP_FileSystem::rename(const char *oldpath, const char *newpath)
 {
     return LittleFS.rename(oldpath,newpath);
@@ -69,7 +74,11 @@ const char * ESP_FileSystem::FilesystemName()
 
 bool ESP_FileSystem::format()
 {
-    return LittleFS.format();
+    bool res = LittleFS.format();
+    if (res) {
+        res = begin();
+    }
+    return res;
 }
 
 ESP_File ESP_FileSystem::open(const char* path, uint8_t mode)
@@ -262,6 +271,11 @@ ESP_File::ESP_File(void* handle, bool isdir, bool iswritemode, const char * path
             set = true;
         }
     }
+}
+
+bool ESP_File::seek(uint32_t pos, uint8_t mode)
+{
+    return tFile_handle[_index].seek(pos, (SeekMode)mode);
 }
 
 void ESP_File::close()

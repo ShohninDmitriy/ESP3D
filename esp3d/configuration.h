@@ -37,6 +37,11 @@
 //SERIAL_COMMAND_FEATURE: allow to send command by serial
 #define SERIAL_COMMAND_FEATURE
 
+//COMMUNICATION_PROTOCOL: to communicate with printer or TFT
+//RAW_SERIAL standard serial
+//MKS_SERIAL Mks protocol
+#define COMMUNICATION_PROTOCOL RAW_SERIAL
+
 //AUTHENTICATION_FEATURE: protect pages by login password
 //#define AUTHENTICATION_FEATURE
 
@@ -56,7 +61,7 @@
 #define TELNET_FEATURE
 
 //WS_DATA_FEATURE: allow to connect serial from Websocket
-#define WS_DATA_FEATURE
+//#define WS_DATA_FEATURE
 
 //DISPLAY_DEVICE: allow screen output
 //OLED_I2C_SSD1306          1
@@ -126,7 +131,7 @@
 //ESP_SD_NATIVE               1 //esp32 / esp8266
 //ESP_SDIO                    2 //esp32 only
 //ESP_SDFAT                   3 //esp8266 (same as native) / esp32
-//#define SD_DEVICE    ESP_SDIO
+//#define SD_DEVICE    ESP_SD_NATIVE
 
 //SDIO mode
 #define SD_ONE_BIT_MODE true
@@ -135,29 +140,39 @@
 //ESP_NO_SD
 //ESP_DIRECT_SD
 //ESP_SHARED_SD
-#define SD_DEVICE_CONNECTION  ESP_DIRECT_SD
+//#define SD_DEVICE_CONNECTION  ESP_DIRECT_SD
 
 //pin if reader has insert detection feature
 //let -1 or comment if none
-//#define ESP_SD_DETECT_PIN       -1
+//#define ESP_SD_DETECT_PIN       4
 //value expected for ESP_SD_DETECT_PIN (0 or 1)
-#define ESP_SD_DETECT_VALUE      1
+#define ESP_SD_DETECT_VALUE      0
+
+//#define ESP_SD_CS_PIN   5
 
 //FILESYSTEM_FEATURE: to host some files on flash
 //ESP_SPIFFS_FILESYSTEM       0
 //ESP_FAT_FILESYSTEM          1
 //ESP_LITTLEFS_FILESYSTEM     2
-#define FILESYSTEM_FEATURE ESP_SPIFFS_FILESYSTEM
+#define FILESYSTEM_FEATURE ESP_LITTLEFS_FILESYSTEM
 
 //Allows to mount /FS and /SD under / for FTP server
-#define GLOBAL_FILESYSTEM_FEATURE
+//#define GLOBAL_FILESYSTEM_FEATURE
+
+//WEBDAV_FEATURE : enable WebDav feature
+//FS_ROOT        mount all FS
+//FS_FLASH       mount Flash FS
+//FS_SD          mount SD FS
+//FS_USBDISK     mount USB disk FS
+
+#define WEBDAV_FEATURE  FS_FLASH
 
 //FTP_FEATURE : enable FTP feature
 //FS_ROOT        mount all FS
 //FS_FLASH       mount Flash FS
 //FS_SD          mount SD FS
 //FS_USBDISK     mount USB disk FS
-#define FTP_FEATURE  FS_ROOT
+//#define FTP_FEATURE  FS_ROOT
 
 //DIRECT_PIN_FEATURE: allow to access pin using ESP201 command
 #define DIRECT_PIN_FEATURE
@@ -188,15 +203,11 @@
 //WEB_UPDATE_FEATURE: allow to flash fw using web UI
 #define WEB_UPDATE_FEATURE
 
+//SD_UPDATE_FEATURE: allow to flash/configure fw using SD
+//#define SD_UPDATE_FEATURE
+
 //NOTIFICATION_FEATURE : allow to push notifications
 #define NOTIFICATION_FEATURE
-
-//For ESP8266 Only, it define which secure client to use AXTls or BearSSL
-//#define USING_AXTLS
-
-//if not using AXTLS need to decrease size of packet to not be OOM
-#define BEARSSL_MFLN_SIZE   512
-#define BEARSSL_MFLN_SIZE_FALLBACK  4096
 
 //CAMERA_DEVICE: Enable the support of connected camera
 //CAMERA_MODEL_CUSTOM           0 //Edit the pins in include/pins.h
@@ -242,7 +253,7 @@
 //DEBUG_OUTPUT_SERIAL2 3
 //DEBUG_OUTPUT_TELNET  4
 //DEBUG_OUTPUT_WEBSOCKET  5
-//#define ESP_DEBUG_FEATURE DEBUG_OUTPUT_SERIAL2
+//#define ESP_DEBUG_FEATURE DEBUG_OUTPUT_SERIAL0
 
 #ifdef ESP_DEBUG_FEATURE
 #define DEBUG_BAUDRATE 115200
@@ -283,6 +294,15 @@
 
 /************************************
  *
+ * SSL Client
+ *
+ * **********************************/
+//Using BearSSL need to decrease size of packet to not be OOM on ESP8266
+#define BEARSSL_MFLN_SIZE   512
+#define BEARSSL_MFLN_SIZE_FALLBACK  4096
+
+/************************************
+ *
  * Customize ESP3D
  *
  * **********************************/
@@ -300,5 +320,17 @@
 
 #define NOTIFICATION_ESP_ONLINE "Hi, %ESP_NAME% is now online at %ESP_IP%"
 #define ESP_NOTIFICATION_TITLE "ESP3D Notification"
+
+#if !defined(WIFI_FEATURE) && !defined(ETH_FEATURE)
+#undef HTTP_FEATURE
+#undef TELNET_FEATURE
+#undef WEBDAV_FEATURE
+#undef FTP_FEATURE
+#undef WEB_UPDATE_FEATURE
+#undef CAPTIVE_PORTAL_FEATURE
+#undef SSDP_FEATURE
+#undef MDNS_FEATURE
+#undef NOTIFICATION_FEATURE
+#endif
 
 #endif //_CONFIGURATION_H

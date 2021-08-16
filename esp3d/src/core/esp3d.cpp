@@ -46,6 +46,9 @@
 #ifdef ESP_LUA_INTERPRETER_FEATURE
 #include "../modules/lua_interpreter/lua_interpreter_service.h"
 #endif //#ifdef 
+#ifdef  SD_UPDATE_FEATURE
+#include "../modules/update/update_service.h"
+#endif // SD_UPDATE_FEATURE
 #include "esp3doutput.h"
 #include "../modules/boot_delay/boot_delay.h"
 
@@ -81,6 +84,13 @@ bool Esp3D::begin()
 #endif //CONNECTED_DEVICES_FEATURE
     //delay to avoid to disturb printer
     bd.begin();
+#ifdef  SD_UPDATE_FEATURE
+    if (update_service.begin()) {
+        log_esp3d("Need restart due to update");
+        //no need to continue as there was an update
+        restart_now();
+    }
+#endif // SD_UPDATE_FEATURE
     log_esp3d("Mode %d", WiFi.getMode());
     if (!Settings_ESP3D::begin()) {
         log_esp3d("Need reset settings");
@@ -106,11 +116,14 @@ bool Esp3D::begin()
     log_esp3d("Main screen");
 #endif //DISPLAY_DEVICE
     //Setup Network
-#if defined(WIFI_FEATURE) || defined(ETH_FEATURE)
-    if (!NetConfig::begin()) {
+#if defined(WIFI_FEATURE) || defined(ETH_FEATURE) || defined(BLUETOOTH_FEATURE)
+    if (Settings_ESP3D::read_byte(ESP_BOOT_RADIO_STATE) == 1){
+        if (!NetConfig::begin()) {
         log_esp3d("Error setup network");
         res = false;
+        }
     }
+    
 #endif //WIFI_FEATURE
 #if defined(ESP_AUTOSTART_SCRIPT)
     esp3d_gcode_host.processscript(ESP_AUTOSTART_SCRIPT);
@@ -174,6 +187,9 @@ void Esp3D::restart_esp(bool need_restart)
 void Esp3D::restart_now()
 {
     log_esp3d("Restarting");
+    if (!serial_service.started()) {
+        serial_service.begin();
+    }
     serial_service.flush();
 #if defined(FILESYSTEM_FEATURE)
     ESP_FileSystem::end();

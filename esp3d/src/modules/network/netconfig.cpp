@@ -107,6 +107,29 @@ bool NetConfig::isHostnameValid (const char * hostname)
     return true;
 }
 
+
+/**
+ * Get IP Integer what ever is enabled
+ */
+IPAddress  NetConfig::localIPAddress()
+{
+    IPAddress current_ip = IPAddress(0,0,0,0);
+#if defined( WIFI_FEATURE)
+    if (WiFi.getMode() == WIFI_STA) {
+        current_ip = WiFi.localIP();
+    } else if (WiFi.getMode() == WIFI_AP) {
+        current_ip = WiFi.softAPIP();
+    }
+#endif //WIFI_FEATURE
+#if defined (ETH_FEATURE)
+    if (EthConfig::started()) {
+        current_ip = ETH.localIP();
+    }
+#endif //ETH_FEATURE
+
+    return current_ip;
+}
+
 /**
  * Get IP string what ever is enabled
  */
@@ -153,14 +176,16 @@ void NetConfig::onWiFiEvent(WiFiEvent_t event)
     case WIFI_EVENT_STAMODE_DISCONNECTED: {
         if(_started) {
             output.printMSG ("Disconnected");
-            ESP3DGlobalOutput::SetStatus("Disconnected");
+            ESP3DGlobalOutput::display_Disconnected();
             //_needReconnect2AP = true;
         }
     }
     break;
     case WIFI_EVENT_STAMODE_GOT_IP: {
         ESP3DGlobalOutput::display_IP();
+#if COMMUNICATION_PROTOCOL != MKS_SERIAL
         output.printMSG (WiFi.localIP().toString().c_str());
+#endif //#if COMMUNICATION_PROTOCOL == MKS_SERIAL
     }
     break;
     case WIFI_EVENT_SOFTAPMODE_STACONNECTED: {
@@ -210,9 +235,12 @@ bool NetConfig::begin()
     //clear everything
     end();
     int8_t espMode =Settings_ESP3D::read_byte(ESP_RADIO_MODE);
-    ESP3DOutput output(ESP_SERIAL_CLIENT);
+    ESP3DOutput output(ESP_ALL_CLIENTS);
+    log_esp3d("Starting Network");
     if (espMode != NO_NETWORK) {
-        output.printMSG("Starting Network");
+        if (Settings_ESP3D::isVerboseBoot()) {
+            output.printMSG("Starting Network");
+        }
     }
     //setup events
     if(!_events_registered) {
@@ -232,16 +260,20 @@ bool NetConfig::begin()
     _hostname = Settings_ESP3D::read_string(ESP_HOSTNAME);
     _mode = espMode;
     if (espMode == NO_NETWORK) {
+        output.printMSG("Disable Network");
         WiFi.mode(WIFI_OFF);
         ESP3DGlobalOutput::display_IP();
-        ESP3DOutput output(ESP_ALL_CLIENTS);
-        ESP3DGlobalOutput::SetStatus(RADIO_OFF_MSG);
-        output.printMSG(RADIO_OFF_MSG);
-        output.flush();
+        if (Settings_ESP3D::isVerboseBoot()) {
+            ESP3DOutput output(ESP_ALL_CLIENTS);
+            ESP3DGlobalOutput::SetStatus(RADIO_OFF_MSG);
+            output.printMSG(RADIO_OFF_MSG);
+            output.flush();
+        }
         return true;
     }
 #if defined (WIFI_FEATURE)
     if ((espMode == ESP_WIFI_AP) || (espMode == ESP_WIFI_STA)) {
+        output.printMSG("Setup wifi");
         res = WiFiConfig::begin();
         //in case STA failed and fallback to AP mode
         if (WiFi.getMode() == WIFI_AP) {
@@ -259,11 +291,13 @@ bool NetConfig::begin()
 #if defined (BLUETOOTH_FEATURE)
     if ((espMode == ESP_BT)) {
         WiFi.mode(WIFI_OFF);
-        ESP3DOutput output(ESP_ALL_CLIENTS);
-        String msg = "BT On";
-        ESP3DGlobalOutput::SetStatus(msg.c_str());
-        output.printMSG(msg.c_str());
-        output.flush();
+        if (Settings_ESP3D::isVerboseBoot()) {
+            ESP3DOutput output(ESP_ALL_CLIENTS);
+            String msg = "BT On";
+            ESP3DGlobalOutput::SetStatus(msg.c_str());
+            output.printMSG(msg.c_str());
+            output.flush();
+        }
         res = bt_service.begin();
     }
 #endif //BLUETOOTH_FEATURE

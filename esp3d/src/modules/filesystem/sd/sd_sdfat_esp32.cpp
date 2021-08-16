@@ -23,7 +23,7 @@ sd_native_esp8266.cpp - ESP3D sd support class
 #include "../esp_sd.h"
 #include "../../../core/genLinkedList.h"
 #include "../../../core/settings_esp3d.h"
-#include "SdFat.h"
+#include <SdFat.h>
 extern File tSDFile_handle[ESP_MAX_SD_OPENHANDLE];
 
 //Max Freq Working
@@ -43,6 +43,7 @@ void dateTime (uint16_t* date, uint16_t* dtime)
 time_t getDateTimeFile(File & filehandle)
 {
     static time_t dt = 0;
+#ifdef SD_TIMESTAMP_FEATURE
     struct tm timefile;
     dir_t d;
     if(filehandle) {
@@ -64,6 +65,7 @@ time_t getDateTimeFile(File & filehandle)
     } else {
         log_esp3d("check stat file failed");
     }
+#endif //SD_TIMESTAMP_FEATURE
     return dt;
 }
 
@@ -86,12 +88,16 @@ uint8_t ESP_SD::getState(bool refresh)
     }
     //SD is idle or not detected, let see if still the case
     _state = ESP_SDCARD_NOT_PRESENT;
+    bool isactive = accessSD();
     log_esp3d("Spi : CS: %d,  Miso: %d, Mosi: %d, SCK: %d",ESP_SD_CS_PIN!=-1?ESP_SD_CS_PIN:SS, ESP_SD_MISO_PIN!=-1?ESP_SD_MISO_PIN:MISO, ESP_SD_MOSI_PIN!=-1?ESP_SD_MOSI_PIN:MOSI, ESP_SD_SCK_PIN!=-1?ESP_SD_SCK_PIN:SCK);
     //refresh content if card was removed
     if (SD.begin((ESP_SD_CS_PIN == -1)?SS:ESP_SD_CS_PIN, SD_SCK_MHZ(FREQMZ/_spi_speed_divider))) {
         if (SD.card()->cardSize() > 0 ) {
             _state = ESP_SDCARD_IDLE;
         }
+    }
+    if (!isactive) {
+        releaseSD();
     }
     return _state;
 }
@@ -112,9 +118,16 @@ bool ESP_SD::begin()
     //set callback to get time on files on SD
     SdFile::dateTimeCallback (dateTime);
 #endif //SD_TIMESTAMP_FEATURE
-    if (getState(true) == ESP_SDCARD_IDLE) {
-        freeBytes();
-    }
+//Setup pins
+#if defined(ESP_SD_DETECT_PIN) && ESP_SD_DETECT_PIN != -1
+    pinMode (ESP_SD_DETECT_PIN, INPUT);
+#endif //ESP_SD_DETECT_PIN
+#if SD_DEVICE_CONNECTION  == ESP_SHARED_SD
+#if defined(ESP_FLAG_SHARED_SD_PIN) && ESP_FLAG_SHARED_SD_PIN != -1
+    pinMode (ESP_FLAG_SHARED_SD_PIN, OUTPUT);
+    digitalWrite(ESP_FLAG_SHARED_SD_PIN, !ESP_FLAG_SHARED_SD_VALUE);
+#endif //ESP_FLAG_SHARED_SD_PIN
+#endif //SD_DEVICE_CONNECTION  == ESP_SHARED_SD
     return _started;
 }
 
@@ -133,7 +146,15 @@ uint64_t ESP_SD::totalBytes()
 
 uint64_t ESP_SD::usedBytes()
 {
+    if(freeBytes() >totalBytes() ) {
+        _sizechanged = true;
+    }
     return totalBytes() - freeBytes();
+}
+
+uint ESP_SD::maxPathLength()
+{
+    return 255;
 }
 
 uint64_t ESP_SD::freeBytes()
@@ -697,6 +718,14 @@ void ESP_SD::closeAll()
     }
 }
 
+bool ESP_SDFile::seek(uint32_t pos, uint8_t mode)
+{
+    if (mode == ESP_SEEK_END) {
+        return tSDFile_handle[_index].seek(-pos);    //based on SDFS comment
+    }
+    return tSDFile_handle[_index].seek(pos);
+}
+
 ESP_SDFile::ESP_SDFile(void* handle, bool isdir, bool iswritemode, const char * path)
 {
     _isdir = isdir;
@@ -810,8 +839,8 @@ ESP_SDFile  ESP_SDFile::openNextFile()
 
 const char * ESP_SD::FilesystemName()
 {
-    return "SDFat";
+    return "SDFat - " SD_FAT_VERSION_STR ;
 }
 
-#endif //SD_DEVICE == ESP_SD_NATIVE
+#endif //SD_DEVICE == ESP_SDFAT
 #endif //ARCH_ESP32 && SD_DEVICE

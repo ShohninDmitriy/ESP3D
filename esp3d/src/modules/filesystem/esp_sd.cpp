@@ -25,12 +25,16 @@
 #include <time.h>
 
 #define ESP_MAX_SD_OPENHANDLE 4
-#if ((SD_DEVICE == ESP_SD_NATIVE) || (SD_DEVICE == ESP_SDFAT)) && defined (ARDUINO_ARCH_ESP8266)
+#if (SD_DEVICE == ESP_SD_NATIVE)  && defined (ARDUINO_ARCH_ESP8266)
+#define FS_NO_GLOBALS
+#include <SD.h>
+File tSDFile_handle[ESP_MAX_SD_OPENHANDLE];
+#elif ((SD_DEVICE == ESP_SDFAT) || (SD_DEVICE == ESP_SDFAT2)) && defined (ARDUINO_ARCH_ESP8266)
 #define FS_NO_GLOBALS
 #define NO_GLOBAL_SD
 #include <SdFat.h>
 sdfat::File tSDFile_handle[ESP_MAX_SD_OPENHANDLE];
-#elif (SD_DEVICE == ESP_SDFAT) && defined (ARDUINO_ARCH_ESP32)
+#elif ((SD_DEVICE == ESP_SDFAT) || (SD_DEVICE == ESP_SDFAT2)) && defined (ARDUINO_ARCH_ESP32)
 #include <SdFat.h>
 File tSDFile_handle[ESP_MAX_SD_OPENHANDLE];
 #else
@@ -46,6 +50,25 @@ uint8_t ESP_SD::setState(uint8_t flag)
 {
     _state =  flag;
     return _state;
+}
+
+bool  ESP_SD::accessSD()
+{
+    bool res = false;
+#if SD_DEVICE_CONNECTION == ESP_SHARED_SD
+    //need to send the current state to avoid
+    res =  (digitalRead(ESP_FLAG_SHARED_SD_PIN) == ESP_FLAG_SHARED_SD_VALUE);
+    if (!res) {
+        digitalWrite(ESP_FLAG_SHARED_SD_PIN, ESP_FLAG_SHARED_SD_VALUE);
+    }
+#endif //SD_DEVICE_CONNECTION == ESP_SHARED_SD 
+    return res;
+}
+void  ESP_SD::releaseSD()
+{
+#if SD_DEVICE_CONNECTION == ESP_SHARED_SD
+    digitalWrite(ESP_FLAG_SHARED_SD_PIN, !ESP_FLAG_SHARED_SD_VALUE);
+#endif //SD_DEVICE_CONNECTION == ESP_SHARED_SD 
 }
 
 

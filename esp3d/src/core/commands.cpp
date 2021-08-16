@@ -48,7 +48,7 @@ void Commands::process(uint8_t * sbuf, size_t len, ESP3DOutput * output, level_a
         cmd[1] = tmpbuf[5] == ']'?0:tmpbuf[5];
         cmd[2] = tmpbuf[6] == ']'?0:tmpbuf[6];
         cmd[3] = 0x0;
-        //log_esp3d("Authentication = %d client %d", auth, output->client());
+        log_esp3d("It is ESP command");
         execute_internal_command (String((const char*)cmd).toInt(), (slen > (strlen((const char *)cmd)+5))?(const char*)&tmpbuf[strlen((const char *)cmd)+5]:"", auth, (outputonly == nullptr)?output:outputonly);
     } else {
         //Dispatch to all clients but current or to define output
@@ -253,7 +253,7 @@ bool Commands::execute_internal_command (int cmd, const char* cmd_params, level_
     //do not overwrite previous authetic <time=YYYY-MM-DD#H24:MM:SS>ation level
     if (auth_type == LEVEL_GUEST) {
         String pwd=get_param (cmd_params, "pwd=");
-        auth_type = AuthenticationService::authenticated_level(pwd.c_str());
+        auth_type = AuthenticationService::authenticated_level(pwd.c_str(), output);
     }
 #endif //AUTHENTICATION_FEATURE
     //log_esp3d("Authentication = %d", auth_type);
@@ -333,6 +333,11 @@ bool Commands::execute_internal_command (int cmd, const char* cmd_params, level_
     case 112:
         response = ESP112(cmd_params, auth_type, output);
         break;
+    //Get/Set boot Network (WiFi/BT/Ethernet) state which can be ON, OFF
+    //[ESP114]<state>pwd=<admin password>
+    case 114:
+        response = ESP114(cmd_params, auth_type, output);
+        break;
     //Get/Set immediate Network (WiFi/BT/Ethernet) state which can be ON, OFF
     //[ESP115]<state>pwd=<admin password>
     case 115:
@@ -371,8 +376,8 @@ bool Commands::execute_internal_command (int cmd, const char* cmd_params, level_
         response = ESP140(cmd_params, auth_type, output);
         break;
 #endif //TIMESTAMP_FEATURE
-    //Get/Set boot delay
-    //[ESP150]<time>[pwd=<admin password>]
+    //Get/Set display/set boot delay in ms / Verbose boot
+    //[ESP150]<delay=time in milliseconds><verbose=YES/NO>[pwd=<admin password>]
     case 150:
         response = ESP150(cmd_params, auth_type, output);
         break;
@@ -408,12 +413,36 @@ bool Commands::execute_internal_command (int cmd, const char* cmd_params, level_
         response = ESP181(cmd_params, auth_type, output);
         break;
 #endif //FTP_FEATURE
+#ifdef WEBDAV_FEATURE
+    //Set webdav state which can be ON, OFF
+    //[ESP190]<state>pwd=<admin password>
+    case 190:
+        response = ESP190(cmd_params, auth_type, output);
+        break;
+    //Set/get webdav port
+    //[ESP191]ctrl=<port> active=<port> passive=<port> pwd=<admin password>
+    case 191:
+        response = ESP191(cmd_params, auth_type, output);
+        break;
+#endif //WEBDAV_FEATURE
 #if defined (SD_DEVICE)
     //Get SD Card Status
     //[ESP200] pwd=<user/admin password>
     case 200:
         response = ESP200(cmd_params, auth_type, output);
         break;
+    //Get/Set SD card Speed factor 1 2 4 6 8 16 32
+    //[ESP202]SPEED=<value>pwd=<user/admin password>
+    case 202:
+        response = ESP202(cmd_params, auth_type, output);
+        break;
+#ifdef SD_UPDATE_FEATURE
+    //Get/Set SD Check at boot state which can be ON, OFF
+    //[ESP402]<state>pwd=<admin password>
+    case 402:
+        response = ESP402(cmd_params, auth_type, output);
+        break;
+#endif //#ifdef SD_UPDATE_FEATURE
 #endif //SD_DEVICE
 #ifdef DIRECT_PIN_FEATURE
     //Get/Set pin value
@@ -516,6 +545,11 @@ bool Commands::execute_internal_command (int cmd, const char* cmd_params, level_
     case 610:
         response = ESP610(cmd_params, auth_type, output);
         break;
+    //Send Notification using URL
+    //[ESP620]URL=<encoded url> [pwd=<admin password>]
+    case 620:
+        response = ESP620(cmd_params, auth_type, output);
+        break;
 #endif //NOTIFICATION_FEATURE
 #if defined(FILESYSTEM_FEATURE)
     //Format ESP Filesystem
@@ -596,6 +630,11 @@ bool Commands::execute_internal_command (int cmd, const char* cmd_params, level_
         response = ESP910(cmd_params, auth_type, output);
         break;
 #endif //BUZZER_DEVICE
+    case 920:
+        //Get state / Set state of output message clients
+        //[ESP910]<SERIAL / LCD / PRINTER_LCD/ WEBSOCKET / TELNET /BT / ALL>=<ON/OFF>[pwd=<admin password>]
+        response = ESP920(cmd_params, auth_type, output);
+        break;
     default:
         output->printERROR ("Invalid Command");
         response = false;

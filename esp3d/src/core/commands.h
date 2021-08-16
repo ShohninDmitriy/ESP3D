@@ -59,6 +59,7 @@ public:
 #endif //WIFI_FEATURE || ETH_FEATURE
 #if defined(WIFI_FEATURE) || defined(ETH_FEATURE) || defined(BT_FEATURE)
     bool ESP112(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
+    bool ESP114(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
     bool ESP115(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
 #endif //WIFI_FEATURE || BLUETOOTH_FEATURE || ETH_FEATURE
 #if defined(HTTP_FEATURE)
@@ -84,8 +85,16 @@ public:
     bool ESP180(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
     bool ESP181(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
 #endif //FTP_FEATURE
+#if defined(WEBDAV_FEATURE)
+    bool ESP190(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
+    bool ESP191(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
+#endif //WEBDAV_FEATURE
 #if defined (SD_DEVICE)
     bool ESP200(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
+    bool ESP202(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
+#ifdef SD_UPDATE_FEATURE
+    bool ESP402(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
+#endif //SD_UPDATE_FEATURE
 #endif //SD_DEVICE
 #ifdef DIRECT_PIN_FEATURE
     bool ESP201(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
@@ -117,6 +126,7 @@ public:
 #if defined(NOTIFICATION_FEATURE)
     bool ESP600(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
     bool ESP610(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
+    bool ESP620(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
 #endif //NOTIFICATION_FEATURE
 #if defined(FILESYSTEM_FEATURE) && defined(ESP_GCODE_HOST_FEATURE)
     bool ESP700(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
@@ -137,6 +147,7 @@ public:
 #endif //GLOBAL_FILESYSTEM_FEATURE
     bool ESP800(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
     bool ESP900(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
+    bool ESP920(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
 #ifdef BUZZER_DEVICE
     bool ESP910(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);
     bool ESP250(const char* cmd_params, level_authenticate_type auth_level, ESP3DOutput * output);

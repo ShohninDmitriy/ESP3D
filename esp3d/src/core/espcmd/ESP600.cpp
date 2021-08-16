@@ -25,7 +25,7 @@
 #include "../../modules/authentication/authentication_service.h"
 #include "../../modules/notifications/notifications_service.h"
 //Send Notification
-//[ESP600]msg [pwd=<admin password>]
+//[ESP600]msg [pwd=<admin/user password>]
 bool Commands::ESP600(const char* cmd_params, level_authenticate_type auth_type, ESP3DOutput * output)
 {
     bool response = true;

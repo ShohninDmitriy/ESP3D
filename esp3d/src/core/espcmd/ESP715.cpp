@@ -25,7 +25,7 @@
 #include "../../modules/authentication/authentication_service.h"
 #include "../../modules/filesystem/esp_sd.h"
 //Format SD Filesystem
-//[ESP715]FORMAT pwd=<admin password>
+//[ESP715]FORMATSD pwd=<admin password>
 bool Commands::ESP715(const char* cmd_params, level_authenticate_type auth_type, ESP3DOutput * output)
 {
     bool response = true;
@@ -41,12 +41,16 @@ bool Commands::ESP715(const char* cmd_params, level_authenticate_type auth_type,
 #endif //AUTHENTICATION_FEATURE
     {
         if (parameter == "FORMATSD") {
+            bool isactive = ESP_SD::accessSD();
             output->printMSG("Start Formating");
             if (ESP_SD::format(output)) {
                 output->printMSG("Format Done");
             } else {
                 output->printERROR ("Format failed!");
                 response = false;
+            }
+            if (!isactive) {
+                ESP_SD::releaseSD();
             }
         } else {
             output->printERROR ("Invalid parameter!");

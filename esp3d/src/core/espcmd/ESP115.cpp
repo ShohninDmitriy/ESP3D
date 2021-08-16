@@ -61,6 +61,7 @@ bool Commands::ESP115(const char* cmd_params, level_authenticate_type auth_type,
                 response = false;
             }
         } else {
+            output->printMSG ("OFF");
             NetConfig::end();
         }
     } else {

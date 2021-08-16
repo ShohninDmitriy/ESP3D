@@ -86,8 +86,10 @@
 #define DEFAULT_INTERNET_TIME       0
 #endif //TIMESTAMP_FEATURE
 
+
 #define DEFAULT_SETUP   0
 
+#define DEFAULT_VERBOSE_BOOT    0
 #define DEFAULT_ESP_BYTE        0
 #define DEFAULT_ESP_STRING_SIZE 0
 #if defined (WIFI_FEATURE) || defined (ETH_FEATURE)
@@ -104,16 +106,11 @@
 #define DEFAULT_TIME_ZONE       0
 #define DEFAULT_TIME_DST        0
 #define DEFAULT_SD_MOUNT        ESP_SD_ROOT
-#define DEFAULT_DIRECT_SD_CHECK 0
 #define DEFAULT_SD_CHECK_UPDATE_AT_BOOT 1
 #define DEFAULT_SENSOR_TYPE     NO_SENSOR_DEVICE
-#ifdef SD_DEVICE
-#define DEFAULT_SD_DEVICE_TYPE  SD_DEVICE_CONNECTION
-#else
-#define DEFAULT_SD_DEVICE_TYPE  ESP_NO_SD
-#endif //SD_DEVICE
 #define DEFAULT_HTTP_ON         1
 #define DEFAULT_FTP_ON          1
+#define DEFAULT_WEBDAV_ON       1
 #define DEFAULT_TELNET_ON       1
 #define DEFAULT_WEBSOCKET_ON    1
 #define DEFAULT_NOTIFICATION_TYPE 0
@@ -121,7 +118,8 @@
 #define DEFAULT_NOTIFICATION_TOKEN2 ""
 #define DEFAULT_NOTIFICATION_SETTINGS ""
 #define DEFAULT_AUTO_NOTIFICATION_STATE 1
-
+#define DEFAULT_SECURE_SERIAL 1
+#define DEFAULT_BOOT_RADIO_STATE 1
 
 //default int values
 #define DEFAULT_ESP_INT         0L
@@ -131,6 +129,7 @@
 #define DEFAULT_FTP_ACTIVE_PORT 20L
 #define DEFAULT_FTP_PASSIVE_PORT 55600L
 #define DEFAULT_WEBSOCKET_PORT  8282L
+#define DEFAULT_WEBDAV_PORT     8181L
 #define DEFAULT_TELNET_PORT     23L
 #define DEFAULT_SENSOR_INTERVAL 30000L
 #define DEFAULT_BOOT_DELAY      10000L
@@ -170,11 +169,12 @@ const char DEFAULT_SETTINGS_VERSION []  =   "ESP3D";
 const uint8_t DEFAULT_IP_VALUE[]   =       {192, 168, 0, 1};
 const uint8_t DEFAULT_MASK_VALUE[]  =      {255, 255, 255, 0};
 #define DEFAULT_GATEWAY_VALUE           DEFAULT_IP_VALUE
+#define DEFAULT_DNS_VALUE           DEFAULT_GATEWAY_VALUE
 const uint8_t DEFAULT_ADDRESS_VALUE[]   =  {0, 0, 0, 0};
 #endif //WIFI_FEATURE || ETH_FEATURE
 
 uint8_t Settings_ESP3D::_FirmwareTarget = UNKNOWN_FW;
-bool Settings_ESP3D::_SDdevice = ESP_NO_SD;
+bool Settings_ESP3D::_isverboseboot = DEFAULT_VERBOSE_BOOT;
 
 bool Settings_ESP3D::begin()
 {
@@ -183,9 +183,20 @@ bool Settings_ESP3D::begin()
     }
     //get target FW
     Settings_ESP3D::GetFirmwareTarget(true);
-    //get SD device if any
-    Settings_ESP3D::GetSDDevice(true);
+    Settings_ESP3D::isVerboseBoot(true);
     return true;
+}
+
+bool Settings_ESP3D::isVerboseBoot(bool fromsettings)
+{
+#if COMMUNICATION_PROTOCOL != MKS_SERIAL
+    if(fromsettings) {
+        _isverboseboot = read_byte (ESP_VERBOSE_BOOT);
+    }
+#else
+    _isverboseboot =  false;
+#endif //#if COMMUNICATION_PROTOCOL == MKS_SERIAL
+    return _isverboseboot;
 }
 
 uint8_t Settings_ESP3D::GetFirmwareTarget(bool fromsettings)
@@ -196,24 +207,19 @@ uint8_t Settings_ESP3D::GetFirmwareTarget(bool fromsettings)
     return _FirmwareTarget;
 }
 
-uint8_t Settings_ESP3D::GetSDDevice(bool fromsettings)
+uint8_t Settings_ESP3D::GetSDDevice()
 {
-    if(fromsettings) {
 #ifdef SD_DEVICE
-        _SDdevice = read_byte (ESP_SD_DEVICE_TYPE);
+    return SD_DEVICE_CONNECTION;
 #else // !SD_DEVICE
-        _SDdevice = ESP_NO_SD;
+    return ESP_NO_SD;
 #endif //SD_DEVICE
-    }
-    return _SDdevice;
 }
 
 const char* Settings_ESP3D::GetFirmwareTargetShortName()
 {
     static String response;
-    if ( _FirmwareTarget == REPETIER4DV) {
-        response = F ("repetier4davinci");
-    } else if ( _FirmwareTarget == REPETIER) {
+    if  ( _FirmwareTarget == REPETIER) {
         response = F ("repetier");
     } else if ( _FirmwareTarget == MARLIN) {
         response = F ("marlin");
@@ -234,8 +240,17 @@ uint8_t Settings_ESP3D::get_default_byte_value(int pos)
 {
     uint8_t res;
     switch(pos) {
+    case ESP_BOOT_RADIO_STATE:
+        res = DEFAULT_BOOT_RADIO_STATE;
+        break;
+    case ESP_SECURE_SERIAL:
+        res = DEFAULT_SECURE_SERIAL;
+        break;
     case ESP_RADIO_MODE:
         res = DEFAULT_ESP_RADIO_MODE;
+        break;
+    case ESP_VERBOSE_BOOT:
+        res = DEFAULT_VERBOSE_BOOT;
         break;
     case ESP_SETUP:
         res = DEFAULT_SETUP;
@@ -268,26 +283,28 @@ uint8_t Settings_ESP3D::get_default_byte_value(int pos)
         res = DEFAULT_STA_IP_MODE;
         break;
 #endif //WIFI_FEATURE || ETH_FEATURE
-        //case ESP_AP_PHY_MODE:
-        //case ESP_STA_PHY_MODE:
-        //    res = DEFAULT_PHY_MODE;
-        //    break;
-        //case ESP_SLEEP_MODE:
-        //    res = DEFAULT_SLEEP_MODE;
-        //    break;
 #if defined (WIFI_FEATURE)
     case ESP_AP_CHANNEL:
         res = DEFAULT_AP_CHANNEL;
         break;
-        //case ESP_AP_AUTH_TYPE:
-        //    res = DEFAULT_AUTH_TYPE;
-        //    break;
-        //case ESP_SSID_VISIBLE:
-        //    res = DEFAULT_SSID_VISIBLE;
-        //    break;
 #endif //WIFI_FEATURE
-    case ESP_OUTPUT_FLAG:
-        res = DEFAULT_OUTPUT_FLAG;
+    case ESP_SERIAL_FLAG:
+        res = DEFAULT_SERIAL_OUTPUT_FLAG;
+        break;
+    case ESP_PRINTER_LCD_FLAG:
+        res = DEFAULT_PRINTER_LCD_FLAG;
+        break;
+    case ESP_WEBSOCKET_FLAG:
+        res = DEFAULT_WEBSOCKET_FLAG;
+        break;
+    case ESP_TELNET_FLAG:
+        res = DEFAULT_TELNET_FLAG;
+        break;
+    case ESP_BT_FLAG:
+        res = DEFAULT_BT_FLAG;
+        break;
+    case ESP_LCD_FLAG:
+        res = DEFAULT_LCD_FLAG;
         break;
 #ifdef FTP_FEATURE
     case ESP_FTP_ON:
@@ -309,6 +326,11 @@ uint8_t Settings_ESP3D::get_default_byte_value(int pos)
         res = DEFAULT_WEBSOCKET_ON;
         break;
 #endif //WS_DATA_FEATURE
+#ifdef WEBDAV_FEATURE
+    case ESP_WEBDAV_ON:
+        res = DEFAULT_WEBDAV_ON;
+        break;
+#endif //WEBDAV_FEATURE
 #ifdef SD_DEVICE
     case ESP_SD_SPEED_DIV:
         res = DEFAULT_SDREADER_SPEED;
@@ -316,14 +338,8 @@ uint8_t Settings_ESP3D::get_default_byte_value(int pos)
     case ESP_SD_MOUNT:
         res = DEFAULT_SD_MOUNT;
         break;
-    case ESP_DIRECT_SD_CHECK:
-        res = DEFAULT_DIRECT_SD_CHECK;
-        break;
     case ESP_SD_CHECK_UPDATE_AT_BOOT:
         res = DEFAULT_SD_CHECK_UPDATE_AT_BOOT;
-        break;
-    case ESP_SD_DEVICE_TYPE:
-        res = DEFAULT_SD_DEVICE_TYPE;
         break;
 #endif //SD_DEVICE
     case ESP_TARGET_FW:
@@ -385,6 +401,9 @@ uint32_t Settings_ESP3D::get_default_int32_value(int pos)
     case ESP_STA_GATEWAY_VALUE:
         res = IPAddress(DEFAULT_GATEWAY_VALUE);
         break;
+    case ESP_STA_DNS_VALUE:
+        res = IPAddress(DEFAULT_DNS_VALUE);
+        break;
 #endif //WIFI_FEATURE || ETH_FEATURE
 #ifdef FTP_FEATURE
     case ESP_FTP_CTRL_PORT:
@@ -412,6 +431,11 @@ uint32_t Settings_ESP3D::get_default_int32_value(int pos)
         res = DEFAULT_WEBSOCKET_PORT;
         break;
 #endif //WS_DATA_FEATURE
+#ifdef WEBDAV_FEATURE
+    case ESP_WEBDAV_PORT:
+        res = DEFAULT_WEBDAV_PORT;
+        break;
+#endif //WEBDAV_FEATURE
 #if defined(SENSOR_DEVICE)
     case ESP_SENSOR_INTERVAL:
         res = DEFAULT_SENSOR_INTERVAL;
@@ -448,6 +472,11 @@ uint32_t Settings_ESP3D::get_max_int32_value(int pos)
         res = MAX_TELNET_PORT;
         break;
 #endif //TELNET_FEATURE
+#ifdef WEBDAV_FEATURE
+    case ESP_WEBDAV_PORT:
+        res = MAX_WEBDAV_PORT;
+        break;
+#endif //WEBDAV_FEATURE
 #ifdef WS_DATA_FEATURE
     case ESP_WEBSOCKET_PORT:
         res = MAX_WEBSOCKET_PORT;
@@ -494,6 +523,11 @@ uint32_t Settings_ESP3D::get_min_int32_value(int pos)
         res = MIN_WEBSOCKET_PORT;
         break;
 #endif //WS_DATA_FEATURE
+#ifdef WEBDAV_FEATURE
+    case ESP_WEBDAV_PORT:
+        res = MIN_WEBDAV_PORT;
+        break;
+#endif //WEBDAV_FEATURE
 #if defined(SENSOR_DEVICE)
     case ESP_SENSOR_INTERVAL:
         res = MIN_SENSOR_INTERVAL;
@@ -1012,8 +1046,43 @@ bool Settings_ESP3D::write_IP(int pos, const uint32_t value)
 }
 
 //clear all entries
-bool Settings_ESP3D::reset()
+bool Settings_ESP3D::reset(bool networkonly)
 {
+    //radio mode
+    Settings_ESP3D::write_byte(ESP_RADIO_MODE,Settings_ESP3D::get_default_byte_value(ESP_RADIO_MODE));
+    Settings_ESP3D::write_byte(ESP_BOOT_RADIO_STATE,Settings_ESP3D::get_default_byte_value(ESP_BOOT_RADIO_STATE));
+#if defined (WIFI_FEATURE)
+    //STA SSID
+    Settings_ESP3D::write_string(ESP_STA_SSID,Settings_ESP3D::get_default_string_value(ESP_STA_SSID).c_str());
+    //STA pwd
+    Settings_ESP3D::write_string(ESP_STA_PASSWORD,Settings_ESP3D::get_default_string_value(ESP_STA_PASSWORD).c_str());
+    //AP SSID
+    Settings_ESP3D::write_string(ESP_AP_SSID,Settings_ESP3D::get_default_string_value(ESP_AP_SSID).c_str());
+    //AP password
+    Settings_ESP3D::write_string(ESP_AP_PASSWORD,Settings_ESP3D::get_default_string_value(ESP_AP_PASSWORD).c_str());
+    //AP static IP
+    Settings_ESP3D::write_IP(ESP_AP_IP_VALUE, Settings_ESP3D::get_default_IP_value(ESP_AP_IP_VALUE));
+    //AP Channel
+    Settings_ESP3D::write_byte(ESP_AP_CHANNEL,Settings_ESP3D::get_default_byte_value(ESP_AP_CHANNEL));
+
+#endif //WIFI_FEATURE
+
+#if defined (WIFI_FEATURE) || defined (ETH_FEATURE)
+    //STA IP mode
+    Settings_ESP3D::write_byte(ESP_STA_IP_MODE,Settings_ESP3D::get_default_byte_value(ESP_STA_IP_MODE));
+    //STA static IP
+    Settings_ESP3D::write_IP(ESP_STA_IP_VALUE, Settings_ESP3D::get_default_IP_value(ESP_STA_IP_VALUE));
+    //STA static Gateway
+    Settings_ESP3D::write_IP(ESP_STA_GATEWAY_VALUE, Settings_ESP3D::get_default_IP_value(ESP_STA_GATEWAY_VALUE));
+    //STA static Mask
+    Settings_ESP3D::write_IP(ESP_STA_MASK_VALUE, Settings_ESP3D::get_default_IP_value(ESP_STA_MASK_VALUE));
+    //STA static DNS
+    Settings_ESP3D::write_IP(ESP_STA_DNS_VALUE, Settings_ESP3D::get_default_IP_value(ESP_STA_DNS_VALUE));
+#endif //WIFI_FEATURE || ETH_FEATURE
+    if (networkonly) {
+        return true;
+    }
+
     bool res = true;
     log_esp3d("Reset Settings");
 #if ESP_SAVE_SETTINGS == SETTINGS_IN_PREFERENCES
@@ -1032,7 +1101,10 @@ bool Settings_ESP3D::reset()
 
     //Setup done (internal only)
     Settings_ESP3D::write_byte(ESP_SETUP,Settings_ESP3D::get_default_byte_value(ESP_SETUP));
-
+    //Verbose boot
+    Settings_ESP3D::write_byte(ESP_VERBOSE_BOOT,Settings_ESP3D::get_default_byte_value(ESP_VERBOSE_BOOT));
+    //Secure Serial
+    Settings_ESP3D::write_byte(ESP_SECURE_SERIAL,Settings_ESP3D::get_default_byte_value(ESP_SECURE_SERIAL));
 #if defined(DISPLAY_DEVICE) && defined(DISPLAY_TOUCH_DRIVER)
     //Calibration done (internal only)
     Settings_ESP3D::write_byte(ESP_CALIBRATION,Settings_ESP3D::get_default_byte_value(ESP_CALIBRATION));
@@ -1065,39 +1137,6 @@ bool Settings_ESP3D::reset()
 #endif //NOTIFICATION_FEATURE
     //radio mode
     Settings_ESP3D::write_byte(ESP_RADIO_MODE,Settings_ESP3D::get_default_byte_value(ESP_RADIO_MODE));
-#if defined (WIFI_FEATURE)
-    //STA SSID
-    Settings_ESP3D::write_string(ESP_STA_SSID,Settings_ESP3D::get_default_string_value(ESP_STA_SSID).c_str());
-    //STA pwd
-    Settings_ESP3D::write_string(ESP_STA_PASSWORD,Settings_ESP3D::get_default_string_value(ESP_STA_PASSWORD).c_str());
-    //AP SSID
-    Settings_ESP3D::write_string(ESP_AP_SSID,Settings_ESP3D::get_default_string_value(ESP_AP_SSID).c_str());
-    //AP password
-    Settings_ESP3D::write_string(ESP_AP_PASSWORD,Settings_ESP3D::get_default_string_value(ESP_AP_PASSWORD).c_str());
-    //AP static IP
-    Settings_ESP3D::write_IP(ESP_AP_IP_VALUE, Settings_ESP3D::get_default_IP_value(ESP_AP_IP_VALUE));
-    //AP Channel
-    Settings_ESP3D::write_byte(ESP_AP_CHANNEL,Settings_ESP3D::get_default_byte_value(ESP_AP_CHANNEL));
-    //AP Network Mode (PHY)
-    //Settings_ESP3D::write_byte(ESP_AP_PHY_MODE,Settings_ESP3D::get_default_byte_value(ESP_AP_PHY_MODE));
-    //AP Authentication
-    //Settings_ESP3D::write_byte(ESP_AP_AUTH_TYPE,Settings_ESP3D::get_default_byte_value(ESP_AP_AUTH_TYPE));
-    //AP SSID visibility
-    //Settings_ESP3D::write_byte(ESP_SSID_VISIBLE,Settings_ESP3D::get_default_byte_value(ESP_SSID_VISIBLE));
-#endif //WIFI_FEATURE
-
-#if defined (WIFI_FEATURE) || defined (ETH_FEATURE)
-    //STA Network Mode
-    //Settings_ESP3D::write_byte(ESP_STA_PHY_MODE,Settings_ESP3D::get_default_byte_value(ESP_STA_PHY_MODE));
-    //STA IP mode
-    Settings_ESP3D::write_byte(ESP_STA_IP_MODE,Settings_ESP3D::get_default_byte_value(ESP_STA_IP_MODE));
-    //STA static IP
-    Settings_ESP3D::write_IP(ESP_STA_IP_VALUE, Settings_ESP3D::get_default_IP_value(ESP_STA_IP_VALUE));
-    //STA static Gateway
-    Settings_ESP3D::write_IP(ESP_STA_GATEWAY_VALUE, Settings_ESP3D::get_default_IP_value(ESP_STA_GATEWAY_VALUE));
-    //STA static Mask
-    Settings_ESP3D::write_IP(ESP_STA_MASK_VALUE, Settings_ESP3D::get_default_IP_value(ESP_STA_MASK_VALUE));
-#endif //WIFI_FEATURE || ETH_FEATURE
 
 #ifdef FTP_FEATURE
     //FTP On
@@ -1123,13 +1162,18 @@ bool Settings_ESP3D::reset()
     //TELNET Port
     Settings_ESP3D::write_uint32 (ESP_TELNET_PORT, Settings_ESP3D::get_default_int32_value(ESP_TELNET_PORT));
 #endif //TELNET
-
 #ifdef WS_DATA_FEATURE
     //Websocket On
     Settings_ESP3D::write_byte(ESP_WEBSOCKET_ON,Settings_ESP3D::get_default_byte_value(ESP_WEBSOCKET_ON));
     //Websocket Port
     Settings_ESP3D::write_uint32 (ESP_WEBSOCKET_PORT, Settings_ESP3D::get_default_int32_value(ESP_WEBSOCKET_PORT));
 #endif //WS_DATA_FEATURE
+#ifdef WEBDAV_FEATURE
+    //WebDav On
+    Settings_ESP3D::write_byte(ESP_WEBDAV_ON,Settings_ESP3D::get_default_byte_value(ESP_WEBDAV_ON));
+    //WebDav Port
+    Settings_ESP3D::write_uint32 (ESP_WEBDAV_PORT, Settings_ESP3D::get_default_int32_value(ESP_WEBDAV_PORT));
+#endif //WEBDAV_FEATURE
 #ifdef AUTHENTICATION_FEATURE
     //Admin password
     Settings_ESP3D::write_string(ESP_ADMIN_PWD,Settings_ESP3D::get_default_string_value(ESP_ADMIN_PWD).c_str());
@@ -1140,13 +1184,20 @@ bool Settings_ESP3D::reset()
 #endif //AUTHENTICATION_FEATURE
     //Target FW
     Settings_ESP3D::write_byte(ESP_TARGET_FW,Settings_ESP3D::get_default_byte_value(ESP_TARGET_FW));
-    //Output flag
-    Settings_ESP3D::write_byte(ESP_OUTPUT_FLAG,Settings_ESP3D::get_default_byte_value(ESP_OUTPUT_FLAG));
+    //Output flags
+    Settings_ESP3D::write_byte(ESP_SERIAL_FLAG,Settings_ESP3D::get_default_byte_value(ESP_SERIAL_FLAG));
+    Settings_ESP3D::write_byte(ESP_PRINTER_LCD_FLAG,Settings_ESP3D::get_default_byte_value(ESP_PRINTER_LCD_FLAG));
+    Settings_ESP3D::write_byte(ESP_WEBSOCKET_FLAG,Settings_ESP3D::get_default_byte_value(ESP_WEBSOCKET_FLAG));
+    Settings_ESP3D::write_byte(ESP_TELNET_FLAG,Settings_ESP3D::get_default_byte_value(ESP_TELNET_FLAG));
+    Settings_ESP3D::write_byte(ESP_BT_FLAG,Settings_ESP3D::get_default_byte_value(ESP_BT_FLAG));
+    Settings_ESP3D::write_byte(ESP_LCD_FLAG,Settings_ESP3D::get_default_byte_value(ESP_LCD_FLAG));
 #ifdef SD_DEVICE
-    //Direct SD
-    Settings_ESP3D::write_byte(ESP_SD_DEVICE_TYPE,Settings_ESP3D::get_default_byte_value(ESP_SD_DEVICE_TYPE));
     //SPI SD Divider
     Settings_ESP3D::write_byte(ESP_SD_SPEED_DIV,Settings_ESP3D::get_default_byte_value(ESP_SD_SPEED_DIV));
+#ifdef SD_UPDATE_FEATURE
+    //SD Update feature
+    Settings_ESP3D::write_byte(ESP_SD_CHECK_UPDATE_AT_BOOT,Settings_ESP3D::get_default_byte_value(ESP_SD_CHECK_UPDATE_AT_BOOT));
+#endif //SD_UPDATE_FEATURE
 #endif //SD_DEVICE
 
 #ifdef TIMESTAMP_FEATURE

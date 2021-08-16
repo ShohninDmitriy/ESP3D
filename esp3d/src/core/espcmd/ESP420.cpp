@@ -50,6 +50,9 @@
 #ifdef WS_DATA_FEATURE
 #include "../../modules/websocket/websocket_server.h"
 #endif //WS_DATA_FEATURE
+#ifdef WEBDAV_FEATURE
+#include "../../modules/webdav/webdav_server.h"
+#endif //WEBDAV_FEATURE
 #if defined (TIMESTAMP_FEATURE)
 #include "../../modules/time/time_server.h"
 #endif //TIMESTAMP_FEATURE
@@ -333,7 +336,7 @@ bool Commands::ESP420(const char* cmd_params, level_authenticate_type auth_type,
     } else {
         output->print (": ");
     }
-    output->print ((bt_service.started())?"ONN":"OFF");
+    output->print ((bt_service.started())?"ON":"OFF");
     if (!plain) {
         output->print ("\"}");
     } else {
@@ -418,6 +421,43 @@ bool Commands::ESP420(const char* cmd_params, level_authenticate_type auth_type,
         }
     }
 #endif //TELNET_FEATURE
+#if defined (WEBDAV_FEATURE)
+    if (webdav_server.started()) {
+        //WebDav port
+        if (!plain) {
+            output->print (",{\"id\":\"");
+        }
+        output->print ("WebDav port");
+        if (!plain) {
+            output->print ("\",\"value\":\"");
+        } else {
+            output->print (": ");
+        }
+        output->printf ("%d",webdav_server.port());
+        if (!plain) {
+            output->print ("\"}");
+        } else {
+            output->printLN("");
+        }
+    }
+    if (webdav_server.isConnected()) {
+        if (!plain) {
+            output->print (",{\"id\":\"");
+        }
+        output->print ("WebDav Client");
+        if (!plain) {
+            output->print ("\",\"value\":\"");
+        } else {
+            output->print (": ");
+        }
+        output->printf ("%s",webdav_server.clientIPAddress());
+        if (!plain) {
+            output->print ("\"}");
+        } else {
+            output->printLN("");
+        }
+    }
+#endif //WEBDAV_FEATURE
 #if defined (FTP_FEATURE)
     if (ftp_server.started()) {
         //ftp ports
@@ -1185,6 +1225,24 @@ bool Commands::ESP420(const char* cmd_params, level_authenticate_type auth_type,
     } else {
         output->printLN("");
     }
+#ifdef SD_UPDATE_FEATURE
+    if (!plain) {
+        output->print (",{\"id\":\"");
+    }
+    output->print ("SD updater");
+    if (!plain) {
+        output->print ("\",\"value\":\"");
+    } else {
+        output->print (": ");
+    }
+    output->print (Settings_ESP3D::read_byte (ESP_SD_CHECK_UPDATE_AT_BOOT)!=0?"ON":"OFF");
+    if (!plain) {
+        output->print ("\"}");
+    } else {
+        output->printLN("");
+    }
+#endif //SD_UPDATE_FEATURE
+
 #endif //SD_DEVICE
 #if defined (SENSOR_DEVICE)
     if (!plain) {
@@ -1255,7 +1313,25 @@ bool Commands::ESP420(const char* cmd_params, level_authenticate_type auth_type,
         output->printLN("");
     }
 #endif //ESP_DEBUG_FEATURE
-
+#if COMMUNICATION_PROTOCOL == MKS_SERIAL
+//Target Firmware
+    if (!plain) {
+        output->print (",{\"id\":\"serial");
+    } else {
+        output->print ("Serial");
+    }
+    if (!plain) {
+        output->print ("\",\"value\":\"");
+    } else {
+        output->print (": ");
+    }
+    output->print ("MKS");
+    if (!plain) {
+        output->print ("\"}");
+    } else {
+        output->printLN("");
+    }
+#endif //COMMUNICATION_PROTOCOL
     //Target Firmware
     if (!plain) {
         output->print (",{\"id\":\"targetfw");
